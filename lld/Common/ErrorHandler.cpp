@@ -246,6 +246,8 @@ void ErrorHandler::warn(const Twine &msg) {
     return;
 
   std::lock_guard<std::mutex> lock(mu);
+  if (warnCallback)
+    warnCallback(msg.str());
   reportDiagnostic(getLocation(msg), Colors::MAGENTA, "warning", msg);
   sep = getSeparator(msg);
 }
@@ -270,6 +272,8 @@ void ErrorHandler::error(const Twine &msg) {
   bool exit = false;
   {
     std::lock_guard<std::mutex> lock(mu);
+    if (errorCallback)
+      errorCallback(msg.str());
 
     if (errorLimit == 0 || errorCount < errorLimit) {
       reportDiagnostic(getLocation(msg), Colors::RED, "error", msg);

@@ -120,6 +120,9 @@ public:
 
   std::unique_ptr<llvm::FileOutputBuffer> outputBuffer;
 
+  std::function<void(StringRef)> errorCallback;
+  std::function<void(StringRef)> warnCallback;
+
 private:
   using Colors = raw_ostream::Colors;
 

@@ -26,6 +26,8 @@ using namespace lld;
 using namespace llvm;
 using namespace llvm::sys;
 
+extern thread_local std::function<void(const LDDiagnostic &)> pendingDiagnosticCallback;
+
 static void err(const Twine &s) { llvm::errs() << s << "\n"; }
 
 static Flavor getFlavor(StringRef s) {
@@ -178,7 +180,11 @@ int unsafeLldMain(llvm::ArrayRef<const char *> args,
 
 Result lld::lldMain(llvm::ArrayRef<const char *> args,
                     llvm::raw_ostream &stdoutOS, llvm::raw_ostream &stderrOS,
-                    llvm::ArrayRef<DriverDef> drivers) {
+                    llvm::ArrayRef<DriverDef> drivers,
+                    std::function<void(const LDDiagnostic &)> diagnosticCallback) {
+
+  pendingDiagnosticCallback = diagnosticCallback;
+
   int r = 0;
   {
     // The crash recovery is here only to be able to recover from arbitrary

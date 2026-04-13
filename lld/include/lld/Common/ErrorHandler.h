@@ -75,6 +75,18 @@
 #include "llvm/Support/FileOutputBuffer.h"
 #include <mutex>
 
+enum class ErrorTag { LibNotFound, SymbolNotFound };
+
+struct LDDiagnostic {
+    enum class Kind { Error, Warning, Note, Log };
+    Kind kind;
+    std::string location;
+    std::string message;
+    std::string formatted;
+    ErrorTag tag;
+    uint64_t errorCount;
+};
+
 namespace llvm {
 class DiagnosticInfo;
 class raw_ostream;
@@ -84,8 +96,6 @@ namespace lld {
 
 llvm::raw_ostream &outs();
 llvm::raw_ostream &errs();
-
-enum class ErrorTag { LibNotFound, SymbolNotFound };
 
 class ErrorHandler {
 public:
@@ -120,8 +130,7 @@ public:
 
   std::unique_ptr<llvm::FileOutputBuffer> outputBuffer;
 
-  std::function<void(StringRef)> errorCallback;
-  std::function<void(StringRef)> warnCallback;
+  std::function<void(const LDDiagnostic &)> diagnosticCallback;
 
 private:
   using Colors = raw_ostream::Colors;
@@ -142,6 +151,8 @@ private:
   std::mutex mu;
   llvm::raw_ostream *stdoutOS{};
   llvm::raw_ostream *stderrOS{};
+
+  bool inTaggedError = false;
 };
 
 /// Returns the default error handler.

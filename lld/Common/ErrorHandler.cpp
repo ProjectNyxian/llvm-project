@@ -21,6 +21,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include <regex>
 
+thread_local std::function<void(const LDDiagnostic &)> pendingDiagnosticCallback;
+
 using namespace llvm;
 using namespace lld;
 
@@ -43,6 +45,8 @@ void ErrorHandler::initialize(llvm::raw_ostream &stdoutOS,
   stderrOS.enable_colors(stderrOS.has_colors());
   this->exitEarly = exitEarly;
   this->disableOutput = disableOutput;
+  if(pendingDiagnosticCallback)
+    diagnosticCallback = pendingDiagnosticCallback;
 }
 
 void ErrorHandler::flushStreams() {
@@ -246,8 +250,9 @@ void ErrorHandler::warn(const Twine &msg) {
     return;
 
   std::lock_guard<std::mutex> lock(mu);
-  if (warnCallback)
-    warnCallback(msg.str());
+  if (diagnosticCallback)
+    diagnosticCallback({LDDiagnostic::Kind::Warning, getLocation(msg), msg.str(),
+                        (getLocation(msg) + ": warning: " + msg.str()), {}, errorCount});
   reportDiagnostic(getLocation(msg), Colors::MAGENTA, "warning", msg);
   sep = getSeparator(msg);
 }
@@ -272,9 +277,9 @@ void ErrorHandler::error(const Twine &msg) {
   bool exit = false;
   {
     std::lock_guard<std::mutex> lock(mu);
-    if (errorCallback)
-      errorCallback(msg.str());
-
+    if (diagnosticCallback && !inTaggedError)
+      diagnosticCallback({LDDiagnostic::Kind::Error, getLocation(msg), msg.str(),
+                          (getLocation(msg) + ": error: " + msg.str()), {}, errorCount});
     if (errorLimit == 0 || errorCount < errorLimit) {
       reportDiagnostic(getLocation(msg), Colors::RED, "error", msg);
     } else if (errorCount == errorLimit) {
@@ -293,6 +298,9 @@ void ErrorHandler::error(const Twine &msg) {
 void ErrorHandler::error(const Twine &msg, ErrorTag tag,
                          ArrayRef<StringRef> args) {
   if (errorHandlingScript.empty()) {
+    if (diagnosticCallback)
+      diagnosticCallback({LDDiagnostic::Kind::Error, getLocation(msg), msg.str(),
+                          (getLocation(msg) + ": error: " + msg.str()), tag, errorCount});
     error(msg);
     return;
   }

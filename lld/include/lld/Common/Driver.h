@@ -1,3 +1,4 @@
+
 //===- lld/Common/Driver.h - Linker Driver Emulator -----------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -11,6 +12,7 @@
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/raw_ostream.h"
+#include "lld/Common/ErrorHandler.h"
 
 namespace lld {
 enum Flavor {
@@ -42,7 +44,8 @@ struct Result {
 // properly exit your application and avoid intermittent crashes on exit caused
 // by cleanup.
 Result lldMain(llvm::ArrayRef<const char *> args, llvm::raw_ostream &stdoutOS,
-               llvm::raw_ostream &stderrOS, llvm::ArrayRef<DriverDef> drivers);
+               llvm::raw_ostream &stderrOS, llvm::ArrayRef<DriverDef> drivers,
+               std::function<void(const LDDiagnostic &)> diagnosticCallback = nullptr);
 } // namespace lld
 
 // With this macro, library users must specify which drivers they use, provide

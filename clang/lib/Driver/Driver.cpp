@@ -5880,6 +5880,17 @@ const char *Driver::GetNamedOutputPath(Compilation &C, const JobAction &JA,
                                        StringRef OrigBoundArch, bool AtTopLevel,
                                        bool MultipleArchs,
                                        StringRef OffloadingPrefix) const {
+
+  // optional override callback — lets embedders redirect object file paths
+  if(OutputPathOverride.has_value())
+  {
+    std::string override = (*OutputPathOverride)(JA, BaseInput, OrigBoundArch);
+    if(!override.empty())
+    {
+      return C.addResultFile(C.getArgs().MakeArgString(override), &JA);
+    }
+  }
+
   std::string BoundArch = OrigBoundArch.str();
   if (is_style_windows(llvm::sys::path::Style::native)) {
     // BoundArch may contains ':', which is invalid in file names on Windows,

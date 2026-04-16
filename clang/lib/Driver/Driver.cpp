@@ -5726,6 +5726,13 @@ InputInfoList Driver::BuildJobsForActionNoCache(
                                              AtTopLevel, MultipleArchs,
                                              OffloadingPrefix),
                        BaseInput);
+
+    if(_skipCurrentJob)
+    {
+        _skipCurrentJob = false;
+        return {Result};
+    }
+
     if (T->canEmitIR() && OffloadingPrefix.empty())
       handleTimeTrace(C, Args, JA, BaseInput, Result);
   }
@@ -5882,12 +5889,16 @@ const char *Driver::GetNamedOutputPath(Compilation &C, const JobAction &JA,
                                        StringRef OffloadingPrefix) const {
 
   // optional override callback — lets embedders redirect object file paths
-  if(OutputPathOverride.has_value())
+  if (OutputPathOverride)
   {
-    std::string override = (*OutputPathOverride)(JA, BaseInput, OrigBoundArch);
-    if(!override.empty())
+    bool skip = false;
+    std::string path = OutputPathOverride(JA, BaseInput, OrigBoundArch, &skip);
+    if (!path.empty())
     {
-      return C.addResultFile(C.getArgs().MakeArgString(override), &JA);
+      if (skip)
+        _skipCurrentJob = true;
+
+      return C.addResultFile(C.getArgs().MakeArgString(path), &JA);
     }
   }
 

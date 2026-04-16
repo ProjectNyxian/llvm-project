@@ -281,11 +281,12 @@ public:
       llvm::function_ref<int(SmallVectorImpl<const char *> &ArgV)>;
   CC1ToolFunc CC1Main = nullptr;
 
-  using OutputPathCallback =
-      std::function<std::string(const JobAction &JA, const char *BaseInput, StringRef BoundArch)>;
-  std::optional<OutputPathCallback> OutputPathOverride;
+  using OutputPathCallback = std::function<std::string(const JobAction &, const char *, llvm::StringRef, bool *)>;
+      OutputPathCallback OutputPathOverride;
 
 private:
+  mutable bool _skipCurrentJob = false;
+
   /// Raw target triple.
   std::string TargetTriple;
 
